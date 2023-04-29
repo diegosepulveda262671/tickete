@@ -1,0 +1,84 @@
+﻿@page "/edit/{id:int}"
+@inject IRepository repository
+@inject NavigationManager navigationManager
+@inject SweetAlertService sweetAlertService
+@if (id > 0)
+{
+    <h3>Boleta : @id</h3>
+
+    <div class="row mb-3">
+        <div class="col-4">
+            <select class="form-select"  @onchange="GoalChangedAsync" aria-label="Default select example">
+                <option value="0" selected>Seleccione Porteria</option>
+                <option value="1">Norte</option>
+                <option value="2">Sur</option>
+                <option value="3">Oriental</option>
+                <option value="4">Occidental</option>
+            </select>
+        </div>
+    </div>
+    <button type="button" @onclick="update" class="btn btn-primary">Actualizar</button>
+
+}
+
+
+@code {
+
+    [Parameter]
+    public int id { get; set; }
+
+
+    public int goal;
+
+    private async Task GoalChangedAsync(ChangeEventArgs e)
+    {
+        goal = Convert.ToInt32(e.Value!);
+
+    }
+
+    private async Task update()
+    {
+
+        if (goal > 0)
+        {
+            Tickete tickete = new Tickete();
+            tickete.Id = id;
+            tickete.isUsed = true;
+            tickete.useDate = DateTime.UtcNow;
+            switch (goal)
+            {
+                case 1:
+                    tickete.goalType = "Norte";
+                    break;
+                case 2:
+                    tickete.goalType = "Sur";
+                    break;
+                case 3:
+                    tickete.goalType = "Oriental";
+                    break;
+                case 4:
+                    tickete.goalType = "Occidental";
+                    break;
+            }
+
+
+            var responseHttp = await repository.Put("/api/ticket", tickete);
+            if (responseHttp.Error)
+            {
+                var message = await responseHttp.GetErrorMessageAsync();
+                await sweetAlertService.FireAsync("Error", message, SweetAlertIcon.Error);
+                return;
+            }
+            await sweetAlertService.FireAsync("OK", "Se actualizo boleta "+tickete.Id+" con hora : "+ tickete.useDate?.ToString("hh:mm tt")+" y porteria : "+tickete.goalType, SweetAlertIcon.Success);
+            navigationManager.NavigateTo("/");
+
+        }
+        else
+        {
+            await sweetAlertService.FireAsync("Error", "Debe seleccionar la porteria", SweetAlertIcon.Error);
+        }
+
+    }
+
+
+    }

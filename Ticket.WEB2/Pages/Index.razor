@@ -1,0 +1,64 @@
+﻿@page "/"
+@inject IRepository repository
+@inject NavigationManager navigationManager
+@inject SweetAlertService sweetAlertService
+<PageTitle>Index</PageTitle>
+
+<h1>Validador de Boletas</h1>
+
+
+
+
+<div class="row">
+    <div class="col-4">
+        <form>
+            <div class="form-group mb-3">
+                <label for="exampleInputEmail1">Ingrese el ID de la Boleta</label>
+                <input type="number" @bind-value="id" class="form-control" id="exampleInputEmail1" aria-describedby="emailHelp" placeholder="">
+            </div>
+
+            <button type="button" @onclick="ValidateAsync" class="btn btn-primary">Validar</button>
+        </form>
+    </div>
+</div>
+
+
+@code{
+    private int id;
+
+    private Tickete? tickete { get; set; }
+
+    private async Task ValidateAsync()
+    {
+        var responseHttp = await repository.Get<Tickete>($"/api/ticket/{id}");
+        if (responseHttp.Error)
+        {
+            if (responseHttp.HttpResponseMessage.StatusCode != HttpStatusCode.NotFound)
+            {
+                var message = await responseHttp.GetErrorMessageAsync();
+                await sweetAlertService.FireAsync("Error", message, SweetAlertIcon.Error);
+                return;
+            }
+            else
+            {
+                await sweetAlertService.FireAsync("Error", "Boleta no válida.", SweetAlertIcon.Error);
+                return;
+            }
+        }
+
+        tickete = responseHttp.Response!;
+
+        if (tickete.isUsed)
+        {
+            await sweetAlertService.FireAsync("Error", "Esta Boleta ya fue usada a las "+tickete.useDate?.ToString("hh:mm tt") + " por la porteria : "+tickete.goalType, SweetAlertIcon.Error);
+        }
+        else
+        {
+            await sweetAlertService.FireAsync("Boleta valida para ingresar", "", SweetAlertIcon.Info);
+            navigationManager.NavigateTo("/edit/"+id);
+
+        }
+
+
+    }
+}
